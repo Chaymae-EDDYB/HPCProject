@@ -19,7 +19,7 @@ typedef struct {
     int    batch_size;
     int    activation;    // act_t
     double lr_decay;      // time-based: lr = lr0 / (1 + decay * epoch)
-    int    tasks_mode;    // kept for CLI parity (not used in MPI logic)
+    int    tasks_mode;  
 } Args;
 
 static void parse_args(int argc, char **argv, Args *a) {
@@ -37,7 +37,7 @@ static void parse_args(int argc, char **argv, Args *a) {
     a->reg         = atof(argv[4]);
     a->print_every = atoi(argv[5]);
     a->batch_size  = atoi(argv[6]);
-    (void)argv[7]; // DTYPE unused (compat with OpenMP CLI)
+    (void)argv[7]; 
     a->lr_decay    = atof(argv[8]);
     a->activation  = atoi(argv[9]);
     a->tasks_mode  = atoi(argv[10]);
