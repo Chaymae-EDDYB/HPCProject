@@ -1,11 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import argparse, csv, os
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-# ---------- helpers ----------
 def read_series(filepath, required_cols):
     rows = []
     with open(filepath, newline="") as f:
@@ -32,7 +28,6 @@ def savefig(path):
     plt.savefig(path, bbox_inches="tight")
     plt.close()
 
-# ---------- plotting ----------
 def plot_strong(strong_csv, outdir):
     if not strong_csv: return
     rows = read_series(strong_csv, ["label", "ranks", "ms"])
@@ -53,7 +48,7 @@ def plot_strong(strong_csv, outdir):
     plt.grid(True, alpha=0.4); plt.legend()
     savefig(os.path.join(outdir, "strong_runtime.png"))
 
-    # Speedup & efficiency (baseline = P=1 time per label, or smallest P if 1 not present)
+    # Speedup & efficiency 
     plt.figure(figsize=(7,4.5))
     for lab, rs in bylab.items():
         rs = sorted(rs, key=lambda x: x["ranks"])
@@ -126,7 +121,6 @@ def plot_hybrid(hybrid_csv, outdir):
     plt.grid(True, alpha=0.4); plt.legend()
     savefig(os.path.join(outdir, "hybrid_runtime.png"))
 
-# ---------- main ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Plot MPI/OpenMP benchmark results.")
     ap.add_argument("--strong", help="CSV with columns: label,ranks,ms")
