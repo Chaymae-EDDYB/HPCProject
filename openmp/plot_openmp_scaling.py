@@ -1,19 +1,7 @@
-#!/usr/bin/env python3
-"""
-Generate OpenMP scaling plot: training time vs number of threads.
-
-Data are taken from Toubkal runs of:
-  ./mlp 128 2000 0.01 0.001 1000 128 1 1e-4 relu <use_tasks>
-where <use_tasks> is 0 (NO-TASKS) or 1 (TASKS).
-"""
-
 import matplotlib.pyplot as plt
 
-# Number of OpenMP threads used
 threads = [1, 2, 4, 8, 16]
 
-# Measured times in seconds (from TIME_MS, first occurrence in each run)
-# NO-TASKS (loop parallelization only)
 time_no_tasks = [
     119.198,  # 1 thread: 119198.446 ms
     72.144,   # 2 threads: 72144.201 ms
@@ -22,7 +10,6 @@ time_no_tasks = [
     72.416,   # 16 threads: 72416.303 ms
 ]
 
-# TASKS (batch-parallel with OpenMP tasks)
 time_tasks = [
     127.209,  # 1 thread: 127209.313 ms
     63.876,   # 2 threads: 63876.120 ms
