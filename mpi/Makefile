@@ -1,4 +1,4 @@
-# Makefile — hybrid MPI + OpenMP build
+# Makefile - hybrid MPI + OpenMP build
 # Usage: make clean && make
 
 MPICC ?= mpicc
