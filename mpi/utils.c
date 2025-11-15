@@ -6,9 +6,6 @@
 #include <time.h>
 #include <string.h>
 
-/* ------------------------------------------------------------------ */
-/*  memory wrappers                                                   */
-/* ------------------------------------------------------------------ */
 void *xmalloc(size_t n) {
     void *p = malloc(n);
     if (!p) {
@@ -27,18 +24,13 @@ void *xcalloc(size_t n, size_t sz) {
     return p;
 }
 
-/* ------------------------------------------------------------------ */
-/*  time in ms                                                        */
-/* ------------------------------------------------------------------ */
+/* --------------------time in ms-------------------------------- */
 uint64_t now_millis(void) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return (uint64_t)ts.tv_sec * 1000ULL + (uint64_t)(ts.tv_nsec / 1000000ULL);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Fisher–Yates permutation                                          */
-/* ------------------------------------------------------------------ */
 void make_permutation(int *perm, int n, unsigned seed) {
     for (int i = 0; i < n; i++) perm[i] = i;
 
@@ -55,9 +47,7 @@ void make_permutation(int *perm, int n, unsigned seed) {
     }
 }
 
-/* ------------------------------------------------------------------ */
-/*  dataset loader: dir/{data_X.txt,data_y.txt}                       */
-/* ------------------------------------------------------------------ */
+/* -------------------dataset loader------------------------------- */
 int load_dataset(const char *dir,
                  double **X_out, int **y_out,
                  int *N_out, int *D_out, int *C_out)
@@ -113,9 +103,6 @@ int load_dataset(const char *dir,
     return 0;
 }
 
-/* ------------------------------------------------------------------ */
-/*  softmax for one vector                                            */
-/* ------------------------------------------------------------------ */
 void softmax(const double *logits, int K, double *probs) {
     double m = logits[0];
     for (int i = 1; i < K; i++)
@@ -130,18 +117,13 @@ void softmax(const double *logits, int K, double *probs) {
         probs[i] /= (s > 0.0 ? s : 1.0);
 }
 
-/* ------------------------------------------------------------------ */
-/*  NLL from probs                                                    */
-/* ------------------------------------------------------------------ */
 double nll_from_probs(const double *p, int y) {
     double py = p[y];
     if (py < 1e-12) py = 1e-12;
     return -log(py);
 }
 
-/* ------------------------------------------------------------------ */
-/*  activations                                                       */
-/* ------------------------------------------------------------------ */
+/* ---------------------activations--------------------------- */
 double act_forward(double z, act_t a) {
     switch (a) {
         case ACT_TANH:  return tanh(z);
@@ -168,9 +150,7 @@ double act_backward(double z, act_t a) {
     return 1.0;
 }
 
-/* ------------------------------------------------------------------ */
-/*  generic LR schedule (for completeness)                            */
-/* ------------------------------------------------------------------ */
+/* --------------------LR schedule------------------------------ */
 double lr_value(lr_schedule_t sched, double lr0, double decay,
                 int step_every, int t, double gamma)
 {
