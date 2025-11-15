@@ -1,4 +1,3 @@
-# generate_moon.py
 from sklearn.datasets import make_moons
 import numpy as np
 import argparse, os
