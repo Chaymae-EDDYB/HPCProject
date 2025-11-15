@@ -1,9 +1,3 @@
-// model.c — MINI-BATCH GD + CSV (loss, lr, acc)
-//           Dynamic LR (const/time/exp/step)
-//           Selectable Activations (tanh/ReLU/Sigmoid/Leaky)
-//           OpenMP parallelization of kernels and grads
-//           Optional OpenMP TASKS mode: parallelize batches within an epoch
-
 #include "model.h"
 #include "utils.h"
 #include <stdio.h>
@@ -16,7 +10,7 @@
   #include <omp.h>
 #endif
 #if !defined(_WIN32)
-  #include <alloca.h>   // for alloca on Linux/glibc
+  #include <alloca.h>  
 #endif
 
 #ifdef _WIN32
@@ -31,23 +25,20 @@
 #define SAFE_FREE(p) do { if ((p)!=NULL) { free(p); (p)=NULL; } } while (0)
 #endif
 
-/* =======================================================================
-   Project-wide globals (set/printed in main.c; used here in training)
-   ======================================================================= */
 int    num_examples     = 0;
 int    nn_input_dim     = 0;
 int    nn_output_dim    = 0;
 
 double reg_lambda       = 0.01;
-double epsilon          = 0.01;   // CLI hook
+double epsilon          = 0.01;   
 
 /* Learning-rate schedule */
-double initial_lr       = 0.01;   // lr0 (we tie to epsilon at build_model start)
+double initial_lr       = 0.01;   // lr0 (tie to epsilon at build_model start)
 double decay_rate       = 0.0001; // k (for time/exp)
 int    decay_type       = 1;      // 0=const, 1=time, 2=exp, 3=step
 
-/* Step-schedule parameters (overridden by flags in main.c) */
-int    step_every       = 0;      // epochs between steps (0 disables step behavior)
+/* Step-schedule parameters */
+int    step_every       = 0;      // epochs between steps 
 double step_gamma       = 0.5;    // multiplicative factor at each step
 
 /* Activations */
@@ -58,13 +49,9 @@ double leaky_alpha      = 0.01;
 int    batch_size       = 32;
 int    use_omp_tasks    = 0;      // 0=SGD per-batch; 1=task-epoch reduction
 
-/* Dataset pointers (filled by main.c) */
+/* Dataset pointers */
 double *X = NULL; // (num_examples × nn_input_dim)
 int    *y = NULL; // (num_examples)
-
-/* =======================================================================
-   Helpers: activations / schedule / names / timing
-   ======================================================================= */
 
 static inline double act_fn(double x, int type) {
     switch (type) {
@@ -76,7 +63,7 @@ static inline double act_fn(double x, int type) {
 }
 
 static inline double act_grad_from_a(double a, double x, int type) {
-    (void)a; // a is useful for sigmoid/tanh if you cache it; we keep both forms
+    (void)a; 
     switch (type) {
         case 1:  return (x > 0.0) ? 1.0 : 0.0;                  // ReLU'
         case 2:  return a * (1.0 - a);                          // Sigmoid'
@@ -102,7 +89,6 @@ static const char* decay_name(void){
     }
 }
 
-/* Simple wall-clock timer for performance measurements */
 static inline double wall_time(void) {
 #ifdef _OPENMP
     return omp_get_wtime();
@@ -111,8 +97,7 @@ static inline double wall_time(void) {
 #endif
 }
 
-/* Learning-rate value per optimizer step (iteration)
-   t = iteration counter (we update per mini-batch in SGD mode; once per epoch in TASKS mode) */
+/* Learning-rate value per optimizer step t = iteration counter */
 static inline double lr_value(long long t) {
     /* const */
     if (decay_type == 0) return initial_lr;
@@ -130,13 +115,9 @@ static inline double lr_value(long long t) {
         return initial_lr * pow(step_gamma, (double)s);
     }
 
-    /* fallback */
     return initial_lr;
 }
 
-/* =======================================================================
-   Full-dataset loss (NLL + L2)
-   ======================================================================= */
 double calculate_loss(double *W1, double *b1, double *W2, double *b2, int nn_hdim)
 {
     double *z1    = (double*)xcalloc((size_t)num_examples * nn_hdim,       sizeof(double));
@@ -173,9 +154,6 @@ double calculate_loss(double *W1, double *b1, double *W2, double *b2, int nn_hdi
     return loss;
 }
 
-/* =======================================================================
-   Accuracy helpers
-   ======================================================================= */
 int predict_one(double *x,
                 double *W1, double *b1,
                 double *W2, double *b2,
@@ -229,10 +207,8 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
 {
     srand(0);
 
-    /* Tie CLI epsilon to schedule's initial_lr (if user didn't set initial_lr explicitly) */
     if (!(initial_lr > 0.0)) initial_lr = epsilon;
 
-    /* Start timer for performance measurement */
     double t0 = wall_time();
 
     (void)MAKE_DIR("output");
@@ -250,13 +226,11 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
     double *W2 = (double*)xmalloc((size_t)nn_hdim  * nn_output_dim     * sizeof(double));
     double *b2 = (double*)xcalloc(                 nn_output_dim,      sizeof(double));
 
-    /* Xavier-ish init */
     for (int i = 0; i < nn_input_dim * nn_hdim; i++)
         W1[i] = randn() / sqrt((double)nn_input_dim);
     for (int i = 0; i < nn_hdim * nn_output_dim; i++)
         W2[i] = randn() / sqrt((double)nn_hdim);
 
-    /* Reusable buffers for SGD mode (max batch) */
     double *z1    = (double*)xcalloc((size_t)batch_size * nn_hdim,       sizeof(double));
     double *a1    = (double*)xcalloc((size_t)batch_size * nn_hdim,       sizeof(double));
     double *z2    = (double*)xcalloc((size_t)batch_size * nn_output_dim, sizeof(double));
@@ -275,7 +249,7 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
 
         if (!use_omp_tasks) {
             /* =========================================================
-               (A) Standard SGD: update per-batch
+                                      Standard SGD
                ========================================================= */
             for (int b = 0; b < num_batches; b++) {
                 const int start = b * batch_size;
@@ -297,7 +271,7 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
                 memset(db1g,  0, (size_t)nn_hdim              * sizeof(double));
                 memset(db2,   0, (size_t)nn_output_dim        * sizeof(double));
 
-                /* Forward (batch) */
+                /* Forward */
                 matmul(Xb, W1, z1, bs, nn_input_dim, nn_hdim);
                 add_bias(z1, b1, bs, nn_hdim);
 
@@ -309,7 +283,7 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
                 add_bias(z2, b2, bs, nn_output_dim);
                 softmax(z2, probs, bs, nn_output_dim);
 
-                /* Backprop (batch) */
+                /* Backprop */
                 #pragma omp parallel for schedule(static)
                 for (int i = 0; i < bs * nn_output_dim; i++)
                     delta3[i] = probs[i];
@@ -391,7 +365,7 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
             }
         } else {
             /* =========================================================
-               (B) OpenMP TASKS mode:
+                               OpenMP TASKS mode:
                Compute grads in parallel across all batches, then single update
                ========================================================= */
             const int W1sz = nn_input_dim * nn_hdim;
@@ -402,7 +376,7 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
             T = omp_get_max_threads();
             #endif
 
-            /* Task granularity control: only create a task if bs >= OMP_TASK_MIN_BS (default 1) */
+            /* Only create a task if bs >= OMP_TASK_MIN_BS */
             int task_min_bs = 1;
             const char *env_min_bs = getenv("OMP_TASK_MIN_BS");
             if (env_min_bs) {
@@ -428,7 +402,6 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
                         const double *Xb = &X[start * nn_input_dim];
                         const int    *yb = &y[start];
 
-                        /* Local temporaries & local grads */
                         double *lz1    = (double*)xcalloc((size_t)bs * nn_hdim,       sizeof(double));
                         double *la1    = (double*)xcalloc((size_t)bs * nn_hdim,       sizeof(double));
                         double *lz2    = (double*)xcalloc((size_t)bs * nn_output_dim, sizeof(double));
@@ -555,7 +528,6 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
             #pragma omp parallel for schedule(static)
             for (int i = 0; i < nn_input_dim * nn_hdim; i++)   dW1[i] += reg_lambda * W1[i];
 
-            /* Single update with averaged gradient over full dataset */
             double lr = lr_value(iter);
             const double inv_all = 1.0 / (double)num_examples;
 
@@ -568,12 +540,11 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
             #pragma omp parallel for schedule(static)
             for (int i = 0; i < nn_output_dim; i++)           b2[i] -= lr * db2[i] * inv_all;
 
-            iter++; /* count as one optimizer step */
+            iter++; 
 
             SAFE_FREE(dW1_all); SAFE_FREE(dW2_all); SAFE_FREE(db1_all); SAFE_FREE(db2_all);
         }
 
-        /* Logging every 1000 epochs (keep identical to your behavior) */
         if (print_loss && epoch % 1000 == 0) {
             double loss   = calculate_loss(W1, b1, W2, b2, nn_hdim);
             double lr_now = lr_value(iter);
@@ -587,7 +558,6 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
         }
     }
 
-    /* Stop timer and print performance line */
     double t1 = wall_time();
     int threads = 1;
 #ifdef _OPENMP
@@ -596,7 +566,7 @@ void build_model(int nn_hdim, int num_passes, int print_loss)
     printf("TIME_MS: %.3f (threads=%d, tasks=%d)\n",
            (t1 - t0) * 1000.0, threads, use_omp_tasks);
 
-    /* Save weights (optional for later plotting/inspection) */
+    /* Save weights */
     (void)MAKE_DIR("output");
     FILE *fw1 = fopen("output/W1.txt", "w");
     FILE *fb1 = fopen("output/b1.txt", "w");
