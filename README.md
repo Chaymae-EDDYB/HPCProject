@@ -11,3 +11,7 @@ The project includes:
 - **MPI + OpenMP** (hybrid distributed/shared-memory parallelism)
 
 All experiments were run on the **Toubkal** HPC cluster.
+## Authors
+
+- Doha \<Dounia\>  
+- Chaymae \<Ed-dyb\>
