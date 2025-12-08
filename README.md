@@ -13,5 +13,5 @@ The project includes:
 All experiments were run on the **Toubkal** HPC cluster.
 ## Authors
 
-- Doha \<Dounia\>  
-- Chaymae \<Ed-dyb\>
+- Doha Dounia  
+- Chaymae Ed-dyb
